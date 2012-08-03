@@ -1,4 +1,4 @@
-import enrol2
+import enrol
 
 #Setup Data Files
 fileSubjects = open("data/SUBJECTS", 'w')
@@ -60,7 +60,7 @@ fileVenues.close()
 #print enrol.read_table("data/CLASSES")
 #print enrol.read_table("data/VENUES")
 
-e = enrol2.Enrol('data')
+e = enrol.Enrol('data')
 #print e.subjects()
 #print e.subject_name('bw101')
 #print e.classes('bw101')

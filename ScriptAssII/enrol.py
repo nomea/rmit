@@ -21,7 +21,8 @@ def read_lines(filename):
         return my_list
     except IOError:
         raise IOError('file not found!')
-
+    finally:
+        f.close
 
 def read_table(filename):
     try:
@@ -33,6 +34,8 @@ def read_table(filename):
         return my_table        
     except IOError:
         raise IOError('file not found!')
+    finally:
+        f.close
 
 
 def write_lines(filename, lines):
@@ -47,8 +50,7 @@ def write_lines(filename, lines):
             _write_to_file(filename, lines, 1)
             return 1
         else:
-            _write_to_file(filename, lines, 0)
-            
+            _write_to_file(filename, lines, 0)          
     except IOError:
         return 0
 
@@ -68,141 +70,182 @@ def _write_to_file(filename, lines, fields):
 
 
 class Enrol(object):
+    data_dir = None
+    subjects = []
+    classes = []
+    venues = []
+    
     def __init__(self, data_dir):
         self.data_dir = data_dir
-        self.classes_raw = None
-        self.all_subjects = []
-        self.all_classes = []
-        self.sb_subject_name_lookup = {}
-        self.cl_subject_lookup = {}
-        self.cl_time_lookup = {}
-        self.cl_venue_lookup = {}
-        self.cl_tutor_lookup = {}
-        self.cl_class_lookup = {}
-        self.vn_capacity_lookup = {}
-        self.rl_enrollments = {}
-        self.enrollment_files = []
-        
+        for f in (os.listdir(data_dir)):
+            if f == VENUESFILE:
+                for v in read_table(os.path.join(data_dir + '/' + f)):
+                    en_venue = En_Venue(v[0], v[1])
+                    self.venues.append(en_venue)
+                    
+        for f in (os.listdir(data_dir)):
+            if f == CLASSESFILE:
+                for c in read_table(os.path.join(data_dir + '/' + f)):
+                    en_class = En_Class(c[0], c[1], c[2], c[4])
+                    for v in self.venues:
+                        if v.get_name() == c[3]:
+                            en_class.add_venue(v)         
+                    self.classes.append(en_class)  
+                            
         for f in (os.listdir(data_dir)):
             if f == SUBJECTSFILE:
-                for s in read_table(data_dir + '//' + f):
-                    self.sb_subject_name_lookup[s[0]] = s[1]
-                    self.all_subjects.append(s[0])
-            elif f == CLASSESFILE:
-                self.classes_raw = read_table(data_dir + '//' + f)
-                for c in read_table(data_dir + '//' + f):
-                    self.cl_subject_lookup[c[0]] = c[1]
-                    self.cl_time_lookup[c[0]] = c[2]
-                    self.cl_venue_lookup[c[0]] = c[3]
-                    self.cl_tutor_lookup[c[0]] = c[4]
-                    self.all_classes.append(c[0])
-            elif f == VENUESFILE:
-                for v in read_table(data_dir + '//' + f):
-                    self.vn_capacity_lookup[v[0]] = v[1]
+                for s in read_table(os.path.join(data_dir + '/' + f)):
+                    en_subject = En_Subject(s[0], s[1])
+                    self.subjects.append(en_subject) 
+                    
+        for s in self.subjects:
+            class_list = []
+            for c in self.classes:
+                if c.get_subject_code() == s.get_code():
+                    class_list.append(c)
+            s.add_classes(class_list)  
+           
+                                 
+        for f in (os.listdir(data_dir)):
             if f.endswith('.roll'):
-                self.enrollment_files.append(f)
-        for r in self.enrollment_files:
-            self.rl_enrollments[r.rstrip('.roll')] = read_lines(self.data_dir + '//' + r)
-            print self.rl_enrollments
-        for s in self.all_subjects:
-            my_classes = []
-            for c in self.classes_raw:
-                if c[1] == s:
-                    my_classes.append(c[0])
-                    self.cl_class_lookup[c[1]] = my_classes  
-                     
-    def subjects(self):
-        return self.all_subjects
-    
-    def subject_name(self, subject_code):
-        return self.sb_subject_name_lookup[subject_code]
-            
-    def classes(self, subject_code):
-        return self.cl_class_lookup[subject_code]
-
+                for c in self.classes:
+                    if f.startswith(c.get_code()):
+                        c.add_students(read_lines(os.path.join(data_dir + '/' + f)))
+        for c in self.classes:
+            print c.get_code() 
+                        
     def class_info(self, class_code):
-        for c in self.all_classes:
-            if class_code == c:
-                return [self.cl_subject_lookup[class_code], 
-                        self.cl_time_lookup[class_code], 
-                        self.cl_venue_lookup[class_code], 
-                        self.cl_tutor_lookup[class_code], 
-                        self._get_students(class_code)]
-            else:
-                return None
+        for c in self.classes:
+            try:
+                if c.get_code() == class_code:
+                    return [c.get_subject_code(), 
+                            c.get_time(),
+                            c.get_venue_name(),
+                            c.get_tutor(),
+                            c.get_students()]
+            except KeyError:
+                raise           
 
     def check_student(self, student_id, subject_code=None):
-        if subject_code:
-            return self._get_students_classes(self.cl_class_lookup[subject_code], student_id)
-        else:
-            return self._get_students_classes(self.all_classes, student_id)
-    
-    def enrol(self, student_id, class_code): 
-        try:
-            self._check_class_code(class_code),
-            if os.path.exists(self.data_dir +'/' + class_code + '.roll'):
-                no_of_students = len(self._get_students(class_code))
-                capacity = self._get_venue_capacity(self._get_venue_name(class_code))
-                if  no_of_students < capacity:
-                    for c in self.all_classes:
-                        for s in self._get_students(c):
-                            if s == student_id:
-                                self.rl_enrollments[c].remove(student_id)
-                        if c == class_code:
-                            self.rl_enrollments[c].append(student_id)
-                        self._confirm_enrollment(c)
-        except KeyError:
-            pass  
-                 
-    def _get_venue_name(self, class_code):
-        return self.cl_venue_lookup[class_code]
-    
-    def _get_venue_capacity(self, venue_name):
-        return self.vn_capacity_lookup[venue_name]
-        
-    def _get_students(self, class_code):
-        return self.rl_enrollments[class_code] 
-    
-    def _check_class_code(self, class_code):
-        found = None
-        for c in self.all_classes:
-            if c == class_code:
-                found = True
-        if found:
-            return found
-        else:
-            raise KeyError
-    
-    def _get_students_classes(self, classes, student_id):
-        my_classes = []
-        for c in classes:
-            try:
-                for s in self.rl_enrollments[c]:
+        class_list = []
+        for c in self.classes:
+            for s in c.get_students():
+                if subject_code:
+                    if c.get_subject_code() == subject_code and s == student_id:
+                        class_list.append(c.get_code())
+                else:
                     if s == student_id:
-                        my_classes.append(c)
-            except KeyError:
-                #fix
-                pass
-        return my_classes
+                        class_list.append(c.get_code())
+        if class_list:
+            return class_list
+        else:
+            return None
+ 
+    def enrol(self, student_id, class_code): 
+        for s in self.subjects:
+            for c in s.get_classes():
+                if c.get_student_count() < c.get_venue_capacity():
+                    for s in c.get_students():
+                        if s == student_id:
+                            c.remove_student(student_id)
+                    if c.get_code() == class_code:
+                        c.add_student(student_id)
+            self._confirm_enrolment()
+            
+    def _confirm_enrolment(self):
+        for c in self.classes:
+            write_lines(os.path.join(self.data_dir, c.get_code() + '.roll'), c.get_students())
+    
+    def get_subjects(self):
+        return self.subjects
 
-    def _confirm_enrollment(self, class_code):
-        write_lines(self.data_dir + '//' + class_code + '.roll', self.rl_enrollments[class_code])
 
-#class En_Class(object):
-#self.class_code
-#self.time
-#self.venue
-#self.tutor
-#self.students
+class En_Class(object):
+    _code = None
+    _subject_code = None
+    _time = None
+    _venue = None
+    _tutor = None
+    _students = []
+    
+    def __init__(self, code, subject_code, time, tutor):
+        self._code = code
+        self._subject_code = subject_code
+        self._time = time
+        self._tutor = tutor
+        
+    def add_venue(self, venue):
+        self._venue = venue
 
-#class En_Subject(object):
-#self.subject_code
-#self.subject_name
-#self.classes
+    def add_students(self, students):
+        self._students = students
+        
+    def add_student(self, student_id):
+        self._students.append(student_id)    
+        
+    def remove_student(self, student_id):
+        self._students.remove(student_id)
+        
+    def get_code(self):
+        return self._code
+    
+    def get_subject_code(self):
+        return self._subject_code
+    
+    def get_time(self):
+        return self._time
+    
+    def get_venue(self):
+        return self._venue
+    
+    def get_tutor(self):
+        return self._tutor
+    
+    def get_students(self):
+        return self._students
+    
+    def get_venue_name(self):
+        return self._venue.get_name()
+    
+    def get_venue_capacity(self):
+        return self._venue.get_capacity()
+    
+    def get_student_count(self):
+        return len(self._students)
 
-#class En_Venue(object):
-#self.name
-#self.capacity
 
-#class En_Student(object):
-#self.student_id
+class En_Subject(object):
+    _code = None
+    _name = None
+    _classes = []
+    
+    def __init__(self, code, name):
+        self._code = code
+        self._name = name 
+    
+    def get_code(self):
+        return self._code
+
+    def get_name(self):
+        return self._name
+    
+    def add_classes(self, classes):
+        self._classes = classes
+        
+    def get_classes(self):
+        return self._classes
+        
+
+class En_Venue(object):
+    _name = None
+    _capacity = None
+
+    def __init__(self, name, capacity):
+        self._name = name
+        self._capacity = capacity 
+    
+    def get_name(self):
+        return self._name
+
+    def get_capacity(self):
+        return self._capacity
