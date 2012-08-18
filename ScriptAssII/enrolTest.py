@@ -2,39 +2,70 @@ import enrol
 
 #Setup Data Files
 fileSubjects = open("data/SUBJECTS", 'w')
-fileSubjects.write('#subject_code:subject_name\n')
-fileSubjects.write('bw101:Introductory Basketweaving 1\nbw110:Introductory Basketweaving 2\nbw330:Underwater Basketweaving')
+fileSubjects.write('\
+#subject_code:subject_name\n\
+bw101:Introductory Basketweaving 1\n\
+bw110:Introductory Basketweaving 2\n\
+bw330:Underwater Basketweaving\n\
+bw201:Baskets Throughout History\n\
+bw340:Quantum Basketweaving\n\
+bw232:Poststructuralist Basketweaving\n\
+bw290:Non-Euclidean Basketweaving')
 fileSubjects.close()
 
 fileClasses = open("data/CLASSES", 'w')
-fileClasses.write('#class_code:subject_code:time:venue_name:tutor_name\n')
-fileClasses.write("bw101.1:bw101:Mon 9.30:2.5.10:Alice Chiswick\nbw101.2:bw101:Wed 14.30:2.6.1:Bob Turnham\nbw330A:bw330:Tue 15.30:23.5.32:Carlos Stamford\nbw110.1:bw110:Thu 8.30:2.6.1:Authur Bags\n")
+fileClasses.write("\
+#class_code:subject_code:time:venue_name:tutor_name\n\
+bw101.1:bw101:Mon 9.30:2.5.10:Alice Chiswick\n\
+bw101.2:bw101:Wed 14.30:2.6.1:Bob Turnham\n\
+bw330A:bw330:Tue 15.30:23.5.32:Carlos Stamford\n\
+bw110.1:bw110:Thu 8.30:2.6.1:Authur Bags")
 fileClasses.close()
 
 fileVenues = open("data/VENUES", 'w')
-fileVenues.write('#venue_name:venue_capacity\n')
-fileVenues.write("2.5.10:18\n2.5.11:18\n2.6.1:22\n23.5.32:50")
+fileVenues.write("\
+#venue_name:venue_capacity\n\
+2.5.10:18\n\
+2.5.11:18\n\
+2.6.1:22\n\
+23.5.32:50")
 fileVenues.close()
 
-fileVenues = open("data/bw101.1.roll", 'w')
-fileVenues.write('#student_id\n')
-fileVenues.write("s3300001\ns3300002\ns3300003\ns3300004")
-fileVenues.close()
+f = open("data/bw101.1.roll", 'w')
+f.write("\
+#student_id\n\
+s3300001\n\
+s3300002\n\
+s3300003\n\
+s3300004")
+f.close()
 
-fileVenues = open("data/bw101.2.roll", 'w')
-fileVenues.write('#student_id\n')
-fileVenues.write("s3300005\ns3300006\ns3300007\ns3300008")
-fileVenues.close()
+f = open("data/bw101.2.roll", 'w')
+f.write("\
+#student_id\n\
+s3300005\n\
+s3300006\n\
+s3300007\n\
+s3300008")
+f.close()
 
-fileVenues = open("data/bw330A.roll", 'w')
-fileVenues.write('#student_id\n')
-fileVenues.write("s3300009\ns3300010\ns3300011\ns3300012")
-fileVenues.close()
+f = open("data/bw330A.roll", 'w')
+f.write("\
+#student_id\n\
+s3300009\n\
+s3300010\n\
+s3300011\n\
+s3300012")
+f.close()
 
-fileVenues = open("data/bw110.1.roll", 'w')
-fileVenues.write('#student_id\n')
-fileVenues.write("s3300013\ns3300014\ns3300015\ns3300016")
-fileVenues.close()
+f = open("data/bw110.1.roll", 'w')
+f.write("\
+#student_id\n\
+s3300013\n\
+s3300014\n\
+s3300015\n\
+s3300016")
+f.close()
 
 #try:
 #    print enrol.read_lines("data/SUBJECTS")
@@ -61,9 +92,8 @@ fileVenues.close()
 #print enrol.read_table("data/VENUES")
 
 e = enrol.Enrol('data')
-#print e.subjects()
-#print e.subject_name('bw101')
-#print e.classes('bw101')
+print e.subject_name('bw101')
+print e.classes('bw101')
 
 e.enrol('s3300001', 'bw101.1')
 e.enrol('s3300002', 'bw101.2')
