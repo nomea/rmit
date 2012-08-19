@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import enrol
 
 #Setup Data Files
@@ -92,22 +94,25 @@ f.close()
 #print enrol.read_table("data/VENUES")
 
 e = enrol.Enrol('data')
-print e.subject_name('bw101')
-print e.classes('bw101')
+#print e.subject_name('bw101')
+#print e.classes('bw101')
 
-e.enrol('s3300001', 'bw101.1')
-e.enrol('s3300002', 'bw101.2')
-e.enrol('s3300003', 'bw101.1')
-e.enrol('s3300004', 'bw101.2')
-e.enrol('s3300005', 'bw101.1')
-e.enrol('s3300006', 'bw101.2')
-e.enrol('s3300007', 'bw101.1')
-e.enrol('s3300008', 'bw101.2')
+e.enrol('s3300001', 'bw101.2')
+e.enrol('s3300001', 'bw110.1')
+e.enrol('s3300001', 'bw330A')
+#e.enrol('s3300002', 'bw101.2')
+#e.enrol('s3300003', 'bw101.1')
+#e.enrol('s3300004', 'bw101.2')
+#e.enrol('s3300005', 'bw101.1')
+#e.enrol('s3300006', 'bw101.2')
+#e.enrol('s3300007', 'bw101.1')
+#e.enrol('s3300008', 'bw101.2')
 
-print e.class_info('bw101.1')
-print e.class_info('bw101.2')
-print e.class_info('bw110.1')
-print e.class_info('bw330A')
-print e.check_student('s3300011')
-print e.check_student('s3300001', 'bw101')
+
+#print e.class_info('bw101.1')
+#print e.class_info('bw101.2')
+#print e.class_info('bw110.1')
+#print e.class_info('bw330A')
+print e.check_student('s3300001')
+print e.check_student('s3300001', 'bw330')
 

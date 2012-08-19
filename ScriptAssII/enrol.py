@@ -1,7 +1,6 @@
 '''
 Created on 23/07/2012
-
-@author: nomea
+@author: aemon murphy s3311114
 '''
 import os
 
@@ -22,8 +21,7 @@ def read_lines(filename):
         return my_list
     except IOError:
         raise IOError('file not found!')
-    finally:
-        f.close
+
 
 def read_table(filename):
     """Read a colon-delimited file and return a list of lists."""
@@ -36,19 +34,17 @@ def read_table(filename):
         return my_table        
     except IOError:
         raise IOError('file not found!')
-    finally:
-        f.close
 
 
 def write_lines(filename, lines):
-    """Write a list of strings to the specified file. 
+    """Select file to write to base on inputed filename variable. 
     
-    Overwrite file if exists.
-    Return 0 if exception occurs.
+    Return 0 if exception raised by from _write_to_file.
     
     """
     try:
         if os.path.basename(filename) == SUBJECTSFILE:
+            #The integer is the no. of delimiting colons to expect on each line
             _write_to_file(filename, lines, 1)
             return 1
         elif os.path.basename(filename) == CLASSESFILE:
@@ -66,69 +62,89 @@ def write_lines(filename, lines):
 
 
 def _write_to_file(filename, lines, fields):
-    """Write a list of strings to the specified file.
+    """Write a list of strings to the specified file. 
     
-    Overwrites file if exists.
-    If exception occurs return 0
-    If successful return 1
-     
+    Validate lines based on no. of fields expected in file 
+    Overwrite file if exists.
+    Return 0 if exception occurs.
+    
     """
     try:
         f = open(filename, 'w')
         for i in range(len(lines)):
+            #If the field count does not match the no. of fields expected
+            #an IOError is raised to prevent data inconsistencies
             if lines[i].count(':') == fields:
                 f.write(lines[i])
                 if i < len(lines) - 1:
                     f.write('\n')
+            else:
+                raise IOError
     except IOError:
         raise                       
-    finally:
-        f.close
 
 
 class Enrol(object):
+    """ Main Class """
     data_dir = None
     subject_list = []
     class_list = []
     venue_list = []
     
     def __init__(self, data_dir):
+        """ Read files and build Subject, Class and Venue objects """
+        #Set data folder to supplied location
         self.data_dir = data_dir
+        #Build venue, class and subject objects then add Students to their
+        #classes
         for f in (os.listdir(data_dir)):
             if f == VENUESFILE:
-                for v in read_table(os.path.join(data_dir + '/' + f)):
-                    en_venue = En_Venue(v[0], v[1])
+                for fields in read_table(os.path.join(data_dir + '/' + f)):
+                    en_venue = En_Venue(fields[0], fields[1])
                     self.venue_list.append(en_venue)
                     
         for f in (os.listdir(data_dir)):
             if f == CLASSESFILE:
-                for c in read_table(os.path.join(data_dir + '/' + f)):
-                    en_class = En_Class(c[0], c[1], c[2], c[4])
+                for fields in read_table(os.path.join(data_dir + '/' + f)):
+                    en_class = En_Class(
+                                        fields[0], 
+                                        fields[1], 
+                                        fields[2], 
+                                        fields[4])
                     for v in self.venue_list:
-                        if v.get_name() == c[3]:
+                        if v.get_name() == fields[3]:
                             en_class.add_venue(v)         
                     self.class_list.append(en_class)  
                             
         for f in (os.listdir(data_dir)):
             if f == SUBJECTSFILE:
-                for s in read_table(os.path.join(data_dir + '/' + f)):
-                    en_subject = En_Subject(s[0], s[1])
+                for fields in read_table(os.path.join(data_dir + '/' + f)):
+                    en_subject = En_Subject(fields[0], fields[1])
                     self.subject_list.append(en_subject) 
-                    
-        for s in self.subject_list:
+        
+        #Set subject codes for classes           
+        for sb in self.subject_list:
             class_list = []
             for c in self.class_list:
-                if c.get_subject_code() == s.get_code():
+                if c.get_subject_code() == sb.get_code():
                     class_list.append(c)
-            s.add_classes(class_list)   
-                                 
+            sb.add_classes(class_list)   
+        
+        #Add students to classes                         
         for f in (os.listdir(data_dir)):
             if f.endswith('.roll'):
                 for c in self.class_list:
                     if f.startswith(c.get_code()):
-                        c.add_students(read_lines(os.path.join(data_dir + '/' + f)))
+                        c.add_students(read_lines(
+                                                  os.path.join(
+                                                  data_dir + '/' + f)))
                         
     def class_info(self, class_code):
+        """ Return class information 
+        
+        Raise KeyError if class does not exist 
+        
+        """
         found = None
         for c in self.class_list:
             if c.get_code() == class_code:
@@ -142,11 +158,19 @@ class Enrol(object):
             raise KeyError          
 
     def check_student(self, student_id, subject_code=None):
+        """ Return list of class codes student is enrolled in 
+        
+        If subject code is specified, Return the class code that the students
+        is enrolled in that subject. Return None if the student is not
+        enrolled in the specified subject
+        
+        """
         class_list = []
         for c in self.class_list:
             for s in c.get_students():
                 if subject_code:
-                    if c.get_subject_code() == subject_code and s == student_id:
+                    if c.get_subject_code() == subject_code \
+                                      and s == student_id:
                         class_list.append(c.get_code())
                 else:
                     if s == student_id:
@@ -157,31 +181,47 @@ class Enrol(object):
             return None
  
     def enrol(self, student_id, class_code): 
-        found = None
-        for s in self.subject_list:
-            for c in s.get_classes():
-                if c.get_student_count() < c.get_venue_capacity():
-                    for s in c.get_students():
-                        if s == student_id:
-                            c.remove_student(student_id)
-                    if c.get_code() == class_code:
-                        found = True
-                        c.add_student(student_id)
+        """ Enrols student in selected class. 
+        
+        Check current number of students in class is less than venue capacity.
+          
+        
+        """
+        for subject in self.subject_list:
+            if subject.get_class(class_code):
+                clss = subject.get_class(class_code)
+                #Check venue not full
+                if clss.check_venue_space:
+                    #Add student to class
+                    clss.add_student(student_id)
+                    #Compare classes and remove student if enrolled in another
+                    #class in the same subject    
+                    for subject_class in subject.get_classes():
+                        if clss.get_subject_code() == \
+                                subject_class.get_subject_code() and \
+                                clss.get_code() != subject_class.get_code():
+                            subject_class.remove_student(student_id)
             self._confirm_enrolment()
-        if not found:
-            raise KeyError
-            
+     
     def _confirm_enrolment(self):
+        """ Update class files. """
         for c in self.class_list:
-            write_lines(os.path.join(self.data_dir, c.get_code() + '.roll'), c.get_students())
+            write_lines(os.path.join(self.data_dir, c.get_code() + '.roll'),
+                        c.get_students())
     
     def subjects(self):
+        """ Return all subject codes in system """
         subjects = []
         for s in self.subject_list:
             subjects.append(s)
         return subjects
 
     def subject_name(self, subject_code):
+        """ Return subject name. 
+        
+        If subject code does not exist raise KeyError
+        
+        """
         found = None
         for s in self.subject_list:
             if s.get_code() == subject_code:
@@ -191,6 +231,11 @@ class Enrol(object):
             raise KeyError
 
     def classes(self, subject_code):
+        """ Return a list of class codes for the specified subject. 
+        
+        If subject code does not exist raise KeyError
+        
+        """
         found = None
         classes = []
         for c in self.class_list:
@@ -202,8 +247,10 @@ class Enrol(object):
         else:
             raise KeyError
                 
+#Class, Subject and Venue classes have been used to imporve modularisation 
 
 class En_Class(object):
+    """ Class Class """
     _code = None
     _subject_code = None
     _time = None
@@ -224,7 +271,8 @@ class En_Class(object):
         self._students = students
         
     def add_student(self, student_id):
-        self._students.append(student_id)    
+        if self._get_student_count() < self._get_venue_capacity(): 
+            self._students.append(student_id)    
         
     def remove_student(self, student_id):
         self._students.remove(student_id)
@@ -251,15 +299,21 @@ class En_Class(object):
         if self._venue:
             return self._venue.get_name()
     
-    def get_venue_capacity(self):
+    def _get_venue_capacity(self):
         if self._venue:
             return self._venue.get_capacity()
     
-    def get_student_count(self):
+    def _get_student_count(self):
         return len(self._students)
 
+    def check_venue_space(self):
+        if self._get_student_count < self._get_venue_capacity:
+            return 1
+        else:
+            return 0
 
 class En_Subject(object):
+    """ Subject Class """
     _code = None
     _name = None
     _classes = []
@@ -280,8 +334,13 @@ class En_Subject(object):
     def get_classes(self):
         return self._classes
         
+    def get_class(self, class_code):
+        for clss in self._classes:
+            if clss.get_code() == class_code:
+                return clss
 
 class En_Venue(object):
+    """ Venue Class """
     _name = None
     _capacity = None
 
@@ -294,3 +353,6 @@ class En_Venue(object):
 
     def get_capacity(self):
         return self._capacity
+
+#no student class was used as a student only has an id. It seemed like a lot 
+#of overhead for 1 data variable

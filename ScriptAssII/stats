@@ -1,14 +1,25 @@
+#!/usr/bin/python
 '''
 Created on Aug 3, 2012
-
-@author: Aemon Murphy
+@author: aemon murphy s3311114
 '''
-import enrol
+
 import sys
-import getopt
 import os
+import enrol
+import getopt
+
 
 def main(argv):
+    """ Main function. 
+    
+    Default: Reports all subjects, their classes and the number of students
+    enrolled.
+    Optional student id: Reports all subjects, with times and venues
+    for the student.
+    
+    """
+    
     data_dir = 'data'
     try:
         env_dir = os.environ['ENROLDIR']
@@ -16,49 +27,75 @@ def main(argv):
             data_dir = env_dir
     except KeyError:
         pass
-    if os.path.exists(data_dir):
-        e = enrol.Enrol(data_dir) 
-        if argv:
-            opts, args = getopt.getopt(argv, '', ['student='])
-            for o, a in opts:
-                if o == '--student':
-                    report_student(e, a)
+    try:
+        if os.path.exists(data_dir):
+            e = enrol.Enrol(data_dir) 
+            if argv:
+                #args variable never used
+                opts, args = getopt.getopt(argv, '', ['student='])
+                for o, a in opts:
+                    if o == '--student':
+                        report_student(e, a)
+            else:
+                report_subjects(e)
         else:
-            report_subjects(e)
-    else:
-        print 'supplied data directory does not exist'
+            print 'supplied data directory does not exist'
+    except getopt.GetoptError:
+        print 'invalid option!\n'
+        usage()
  
 def report_student(e, student_id): 
-    classes = e.check_student(student_id)
+    """ Output student enrolment details. """
+    if e.check_student(student_id):
+        classes = e.check_student(student_id)
+    else:
+        print "student id not found!\n"
+        usage()
+        return 0
     for c in classes:
-        print '{0:s} {1:35s} {2:s}'.format(get_subject_code(e, c),
-                                get_subject_name(e, get_subject_code(e, c)),
-                                get_class_time_venue(e, c))
+        print ('%s %-35s %s') % (
+                                  get_subject_code(e, c), 
+                                  get_subject_name(e, get_subject_code(e, c)),
+                                  get_class_time_venue(e, c))   
         
 def report_subjects(e):    
+    """ Output all subject information. """
     for sb in e.subjects():
-        print '{0:s} {1:35s} {2:4s} {3:4s}'.format(sb.get_code(), get_subject_name(e, sb.get_code()), get_no_classes(sb), get_no_students(sb))
+        print '%s %-35s %s %2s' % (
+                               sb.get_code(),
+                               get_subject_name(e, sb.get_code()), 
+                               get_no_classes(sb), 
+                               get_no_students(sb))
 
 def get_no_classes(subject):
+    """ Return number of classes for subject. """
     return str(len(subject.get_classes()))
     
 def get_no_students(subject):
+    """ Return total number of subjects for subject. """
     students = 0
     for s in subject.get_classes():
         students += len(s.get_students())
     return str(students)
     
 def get_subject_name(e, subject):
+    """ Return subject name. """
     for sb in e.subjects():
         if sb.get_code() == subject:
             return sb.get_name()
 
 def get_subject_code(e, clss):
+    """ Return subject code. """
     return e.class_info(clss)[0]
         
 def get_class_time_venue(e, clss):
+    """ Return class time and Venue """
     info = e.class_info(clss)
     return  info[1] + ' @ ' + info[2]
+        
+def usage():
+    """ Print usage info """       
+    print 'Usage: stat {--student [studentid]}'
         
 main(sys.argv[1:])
         
